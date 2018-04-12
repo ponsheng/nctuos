@@ -8,14 +8,23 @@
  */
 static struct Trapframe *last_tf;
 
-/* TODO: You should declare an interrupt descriptor table.
+/* todo: You should declare an interrupt descriptor table.
  *       In x86, there are at most 256 it.
  *
  * Note: You can leverage the Gatedesc data structure inside mmu.h
  *       Interrupt descriptor table must be built at run time because shifted
  *       function addresses can't be represented in relocation records.
  */
+struct Gatedesc idt[256];
 
+// TODO cannot place in local stack
+struct Pseudodesc idtr = {
+	.pd_lim = sizeof(idt)-1,	// Limit // Size in byte
+	.pd_base = idt		// Base address  // Linear addr?
+};
+
+extern void isr_kbd();
+extern void isr_timer();
 
 /* For debugging */
 static const char *trapname(int trapno)
@@ -103,7 +112,7 @@ print_regs(struct PushRegs *regs)
 static void
 trap_dispatch(struct Trapframe *tf)
 {
-  /* TODO: Handle specific interrupts.
+  /* todo: Handle specific interrupts.
    *       You need to check the interrupt number in order to tell
    *       which interrupt is currently happening since every interrupt
    *       comes to this function called by default_trap_handler.
@@ -117,9 +126,18 @@ trap_dispatch(struct Trapframe *tf)
    *       We prepared the keyboard handler and timer handler for you
    *       already. Please reference in kernel/kbd.c and kernel/timer.c
    */
-
+	uint32_t intnum = tf->tf_trapno;
+	switch ( intnum ) {
+		case IRQ_OFFSET + IRQ_KBD:
+			kbd_intr();
+			break;
+		case IRQ_OFFSET + IRQ_TIMER:
+			timer_handler();
+			break;
 	// Unexpected trap: The user process or the kernel has a bug.
-	print_trapframe(tf);
+		default:
+			print_trapframe(tf);
+	}
 }
 
 /* 
@@ -138,7 +156,7 @@ void default_trap_handler(struct Trapframe *tf)
 
 void trap_init()
 {
-  /* TODO: You should initialize the interrupt descriptor table.
+  /* todo: You should initialize the interrupt descriptor table.
    *       You should setup at least keyboard interrupt and timer interrupt as
    *       the lab's requirement.
    *
@@ -159,9 +177,12 @@ void trap_init()
    *       There is a data structure called Pseudodesc in mmu.h which might
    *       come in handy for you when filling up the argument of "lidt"
    */
+	//                                    global code segment
 
 	/* Keyboard interrupt setup */
+	SETGATE(idt[IRQ_OFFSET + IRQ_KBD], 0, 8, isr_kbd, 0)
 	/* Timer Trap setup */
+	SETGATE(idt[IRQ_OFFSET + IRQ_TIMER], 0, 8, isr_timer, 0)
   /* Load IDT */
-
+	lidt((void*)&idtr);
 }

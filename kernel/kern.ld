@@ -12,9 +12,12 @@ SECTIONS
 
 	/* AT(...) gives the load address of this section, which tells
 	   the boot loader where to load the kernel in physical memory */
+	PROVIDE(__text_start = .);
 	.text : {
 		*(.text .stub .text.* .gnu.linkonce.t.*)
 	}
+	PROVIDE(__text_end = .);
+
 	PROVIDE(etext = .);	/* Define the 'etext' symbol to this value */
 
 	.rodata : {
@@ -42,9 +45,12 @@ SECTIONS
 	. = ALIGN(0x1000);
 
 	/* The data segment */
+	PROVIDE(__data_start = .);
 	.data : {
 		*(.data)
 	}
+	PROVIDE(__data_end = .);
+
 	.bss : {
 		*(.bss)
 	}

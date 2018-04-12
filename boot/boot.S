@@ -49,7 +49,7 @@ loop:
 # Bootstrap GDT
 	.p2align 2                                # force 4 byte alignment
 gdt:
-# TODO: Fillup GDT entry with SEG macro
+# todo: Fillup GDT entry with SEG macro
 #       One for kernel code segment
 #       One for kernel data segment
 #
@@ -60,13 +60,14 @@ gdt:
 #       easy-to-use macro when defining segmentation type.
 
 	SEG_NULL    # NULL segment
-	SEG()     # Kernel code segment
-	SEG()     # Kernel data segment
-
-# TODO: Please fillup the GDT register for gdt in order to used
+	SEG(0x0a, 0x0000, 0x07ff000)     # Kernel code segment
+	SEG(0x02, 0x0000, 0x07ff000)     # Kernel data segment
+#end_gdt:
+# todo: Please fillup the GDT register for gdt in order to used
 #       with "lgdt" instruction.
 # Note: You can reference lab3_reference page 13 for detail meaning
 #       of each bit of GDT register.
 gdtdesc: 
-	.word	# gdt limit
-	.word	# gdt base
+	.word	(gdtdesc-gdt)-1# gdt limit
+	.long	gdt  # gdt base
+	#.word	gdt# gdt base
