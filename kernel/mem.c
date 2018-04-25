@@ -42,6 +42,11 @@ i386_detect_memory(void)
 	// Calculate the number of physical pages available in both base
 	// and extended memory.
 	if (npages_extmem)
+
+        // The CMOS memory size information may ignore the standard 
+        // memory hole at 15M. If you use the CMOS size, you may want 
+        // to simply assume that this memory hole exists. Of course, 
+        // it also has no information about any other reserved regions.
 		npages = (EXTPHYSMEM / PGSIZE) + npages_extmem;
 	else
 		npages = npages_basemem;
@@ -265,6 +270,7 @@ page_init(void)
 	
     /* lab4 */
     size_t i;
+    int cn = 0;;
 	       // cprintf("PAGES: %d %d %d %d %d\n", PGNUM(PGSIZE), PGNUM(npages_basemem * PGSIZE),PGNUM(IOPHYSMEM), PGNUM(EXTPHYSMEM), PGNUM(PADDR(nextfree)));
 
 	for (i = 0; i < npages; i++) {
@@ -281,14 +287,19 @@ page_init(void)
             pages[i].pp_ref = 0;
             pages[i].pp_link = page_free_list;
             page_free_list = &pages[i];
+            cn++;
         } else if ( i >= PGNUM(PADDR(nextfree))) {
             pages[i].pp_ref = 0;
             pages[i].pp_link = page_free_list;
             page_free_list = &pages[i];
+            cn++;
         } else {
 	        cprintf("Undefined page num: %d\n", i);
         }
     }
+
+	        cprintf("Total pages count: %d\n", npages);
+	        cprintf("Free pages count: %d\n", cn);
 }
 
 //
@@ -968,5 +979,9 @@ check_page_installed_pgdir(void)
 
 void page_fault_handler(void)
 {
-     cprintf("[0656066] Page fault @0x123456\n");
+    uintptr_t add;
+    __asm__ ("movl %%cr2, %0\n\t"   //%cr2
+   : "=r" (add));
+    cprintf("[0656066] Page fault @ %x \n",add);
+    while(1){}
 }
