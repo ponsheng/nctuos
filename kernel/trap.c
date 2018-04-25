@@ -25,6 +25,8 @@ struct Pseudodesc idtr = {
 
 extern void isr_kbd();
 extern void isr_timer();
+extern void isr_page_fault();
+
 
 /* For debugging */
 static const char *trapname(int trapno)
@@ -128,6 +130,9 @@ trap_dispatch(struct Trapframe *tf)
    */
 	uint32_t intnum = tf->tf_trapno;
 	switch ( intnum ) {
+        case T_PGFLT:
+            page_fault_handler();
+            break;
 		case IRQ_OFFSET + IRQ_KBD:
 			kbd_intr();
 			break;
@@ -183,6 +188,7 @@ void trap_init()
 	SETGATE(idt[IRQ_OFFSET + IRQ_KBD], 0, 8, isr_kbd, 0)
 	/* Timer Trap setup */
 	SETGATE(idt[IRQ_OFFSET + IRQ_TIMER], 0, 8, isr_timer, 0)
+	SETGATE(idt[T_PGFLT], 0, 8, isr_page_fault, 0)
   /* Load IDT */
 	lidt((void*)&idtr);
 }
