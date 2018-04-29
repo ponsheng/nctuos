@@ -20,6 +20,10 @@ struct Pseudodesc idt_pd = {
 	sizeof(idt) - 1, (uint32_t) idt
 };
 
+extern void isr_kbd();
+extern void isr_timer();
+extern void isr_page_fault();
+
 /* Trap handlers */
 TrapHandler trap_hnd[256] = { 0 };
 
@@ -176,6 +180,7 @@ trap_dispatch(struct Trapframe *tf)
 	print_trapframe(tf);
 	panic("Unexpected trap!");
 	
+
 }
 
 void default_trap_handler(struct Trapframe *tf)
@@ -206,6 +211,9 @@ void trap_init()
 		trap_hnd[i] = NULL;
 	}
 
+	SETGATE(idt[IRQ_OFFSET + IRQ_KBD], 0, 8, isr_kbd, 0)
+	SETGATE(idt[IRQ_OFFSET + IRQ_TIMER], 0, 8, isr_timer, 0)
+//	SETGATE(idt[T_PGFLT], 0, 8, isr_page_fault, 0)
 
   /* Using default_trap_handler */
 	extern void GPFLT();
@@ -218,4 +226,5 @@ void trap_init()
   register_handler(T_PGFLT, page_fault_handler, PGFLT, 1, 0);
 
 	lidt(&idt_pd);
+
 }

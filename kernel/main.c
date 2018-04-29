@@ -38,6 +38,11 @@ void kernel_main(void)
 
   lcr3(PADDR(cur_task->pgdir));
 
+/*	 kbd_init();
+	 timer_init();
+
+*/
+
   /* Move to user mode */
   asm volatile("movl %0,%%eax\n\t" \
   "pushl %1\n\t" \

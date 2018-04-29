@@ -49,6 +49,8 @@ jmp loop
 # Bootstrap GDT
 .p2align 2                                # force 4 byte alignment
 gdt:
+
+
 SEG_NULL    # NULL segment
 
 SEG(STA_X|STA_R, 0x0, 0xffffffff)	# Kernel code segment
@@ -57,3 +59,27 @@ SEG(STA_W, 0x0, 0xffffffff) 		# Kernel data segment
 gdtdesc: 
 .word	0x17		# sizeof(gdt) - 1
 .word	gdt,0	# gdt base = 07xxx
+/*
+# todo: Fillup GDT entry with SEG macro
+#       One for kernel code segment
+#       One for kernel data segment
+#
+#       Please reference lab3_reference.pdf for the meaning of
+#       each bit inside segment descriptor.
+#
+#       You may reference mmu.h for Application Segment Type for 
+#       easy-to-use macro when defining segmentation type.
+
+	SEG_NULL    # NULL segment
+	SEG(0x0a, 0x0000, 0x07ff000)     # Kernel code segment
+	SEG(0x02, 0x0000, 0x07ff000)     # Kernel data segment
+#end_gdt:
+# todo: Please fillup the GDT register for gdt in order to used
+#       with "lgdt" instruction.
+# Note: You can reference lab3_reference page 13 for detail meaning
+#       of each bit of GDT register.
+gdtdesc: 
+	.word	(gdtdesc-gdt)-1# gdt limit
+	.long	gdt  # gdt base
+	#.word	gdt# gdt base
+*/
