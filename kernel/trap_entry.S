@@ -46,6 +46,19 @@ TRAPHANDLER_NOEC(GPFLT, T_GPFLT)
 TRAPHANDLER_NOEC(STACK_ISR, T_STACK)
 TRAPHANDLER_NOEC(PGFLT, T_PGFLT)
 
+
+/*TRAPHANDLER_NOEC(isr_divide, T_DIVIDE)
+TRAPHANDLER_NOEC(isr_debug, T_DEBUG)
+TRAPHANDLER_NOEC(isr_nmi, T_NMI)
+TRAPHANDLER_NOEC(isr_brkpt, T_BRKPT)
+TRAPHANDLER_NOEC(isr_oflow, T_OFLOW)
+TRAPHANDLER_NOEC()*/
+TRAPHANDLER_NOEC(isr_kbd, IRQ_OFFSET + IRQ_KBD)
+TRAPHANDLER_NOEC(isr_timer, IRQ_OFFSET + IRQ_TIMER)
+TRAPHANDLER_NOEC(isr_page_fault, T_PGFLT)
+
+
+
 .globl default_trap_handler;
 _alltraps:
 	/* Lab3: Push the registers into stack( fill the Trapframe structure )
