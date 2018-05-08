@@ -14,14 +14,15 @@ CFLAGS += -I.
 
 OBJDIR = .
 
+IMG=Kernel.img
 
 include boot/Makefile
 include kernel/Makefile
 
 all: boot/boot kernel/system
-	dd if=/dev/zero of=$(OBJDIR)/kernel.img count=10000 2>/dev/null
-	dd if=$(OBJDIR)/boot/boot of=$(OBJDIR)/kernel.img conv=notrunc 2>/dev/null
-	dd if=$(OBJDIR)/kernel/system of=$(OBJDIR)/kernel.img seek=1 conv=notrunc 2>/dev/null
+	dd if=/dev/zero of=$(OBJDIR)/$(IMG) count=10000 2>/dev/null
+	dd if=$(OBJDIR)/boot/boot of=$(OBJDIR)/$(IMG) conv=notrunc 2>/dev/null
+	dd if=$(OBJDIR)/kernel/system of=$(OBJDIR)/$(IMG) seek=1 conv=notrunc 2>/dev/null
 
 clean:
 	rm -rf $(OBJDIR)/boot/*.o $(OBJDIR)/boot/boot.out $(OBJDIR)/boot/boot $(OBJDIR)/boot/boot.asm
@@ -30,8 +31,11 @@ clean:
 	rm -rf $(OBJDIR)/user/*.o
 	rm -rf $(OBJDIR)/user/*.asm
 
+QEMU_ARG= --curses
+
 qemu:
-	qemu-system-i386 -hda kernel.img -monitor stdio
+	qemu-system-i386 -hda $(IMG) $(QEMU_ARG) #-monitor stdio
 
 debug:
-	qemu-system-i386 -hda kernel.img -monitor stdio -s -S
+	qemu-system-i386 -hda $(IMG) -s -S $(QEMU_ARG) #-monitor stdio -s -S
+
