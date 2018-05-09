@@ -69,8 +69,9 @@ Task *cur_task = NULL; //Current running task
 
 extern void sched_yield(void);
 
+static void task_free(int pid);
 
-/* TODO: Lab5
+/* Lab5
  * 1. Find a free task structure for the new task,
  *    the global task list is in the array "tasks".
  *    You should find task that is in the state "TASK_FREE"
@@ -97,15 +98,35 @@ extern void sched_yield(void);
  */
 int task_create()
 {
+    int i;
 	Task *ts = NULL;
 
 	/* Find a free task structure */
+    for ( i = 0; i < NR_TASKS; i++ ) {
+        if ( tasks[i].state == TASK_FREE || tasks[i].state == TASK_STOP ) {
+            ts = &(tasks[i]);
+            break;
+        }
+    }
+    if (!ts) return -1;
 
   /* Setup Page Directory and pages for kernel*/
   if (!(ts->pgdir = setupkvm()))
     panic("Not enough memory for per process page directory!\n");
 
   /* Setup User Stack */
+    int ret;
+    int size;
+    struct PageInfo *page;
+    for ( size = PGSIZE; size < USR_STACK_SIZE; size += PGSIZE) {
+        //printk("VM: %x\n", USTACKTOP);
+        page = page_alloc(0);
+        if ( ! page ) {
+            goto create_error;
+        }
+        ret = page_insert(ts->pgdir, page,(void*) USTACKTOP - size, PTE_U | PTE_W );
+        if ( ret ) goto create_error;
+    }
 
 	/* Setup Trapframe */
 	memset( &(ts->tf), 0, sizeof(ts->tf));
@@ -117,10 +138,24 @@ int task_create()
 	ts->tf.tf_esp = USTACKTOP-PGSIZE;
 
 	/* Setup task structure (task_id and parent_id) */
+    ts->task_id = i;
+    ts->parent_id = (cur_task) ? cur_task->task_id : 0 ;
+    ts->state = TASK_RUNNABLE;
+    ts->remind_ticks = TIME_QUANT;
+
+    printk("task #%d created\n", i);
+    return ts->task_id;
+
+create_error:
+    printk("task create failed\n");
+
+    task_free(i);
+    
+    return -1;
 }
 
 
-/* TODO: Lab5
+/* Lab5
  * This function free the memory allocated by kernel.
  *
  * 1. Be sure to change the page directory to kernel's page
@@ -139,21 +174,44 @@ int task_create()
  */
 static void task_free(int pid)
 {
+    // Find task
+    Task* ts = &(tasks[pid]);
+
+
+    // Change to kernel pgdir
+    lcr3(PADDR(kern_pgdir));
+
+    int size;
+    for ( size = PGSIZE; size < USR_STACK_SIZE; size += PGSIZE) {
+        page_remove(ts->pgdir, (void*) USTACKTOP - size);
+    }
+    // FIXME why not kernel pages
+
+    // change to kernel page_dir
+    ptable_remove(ts->pgdir);
+    pgdir_remove(ts->pgdir);
 }
 
+// this does not kill process #0
 void sys_kill(int pid)
 {
 	if (pid > 0 && pid < NR_TASKS)
 	{
-	/* TODO: Lab 5
-   * Remember to change the state of tasks
-   * Free the memory
-   * and invoke the scheduler for yield
-   */
+        //printk("Killed #%d\n", pid);
+	    // Lab 5
+        // Remember to change the state of tasks
+        tasks[pid].state = TASK_STOP;
+        //Free the memory
+        task_free(pid);
+        //and invoke the scheduler for yield
+        if ( cur_task->task_id == pid ) {
+           sched_yield(); 
+        }
 	}
 }
 
-/* TODO: Lab 5
+
+/* Lab 5
  * In this function, you have several things todo
  *
  * 1. Use task_create() to create an empty task, return -1
@@ -179,20 +237,66 @@ void sys_kill(int pid)
  */
 int sys_fork()
 {
+    int pid;
+    int size;
+    struct PageInfo *page;
+    void* ptr;
+    Task* ts;
   /* pid for newly created process */
-  int pid;
+   if ( ! ( pid = task_create() )) {
+        return -1;
+   }
+    ts = &tasks[pid];
+
+    // copy tf
+    ts->tf = cur_task->tf;
+
+   // TODO setup stack
+   // My strategy
+   // 1. map new process's stack (pa) to somewhere in va (I use UTEMP)
+   // 2. memcopy
+   // 3. unmap
+   // 4. finish
+    for ( size = PGSIZE; size < USR_STACK_SIZE; size += PGSIZE) {
+        // Target va
+        ptr = (void*)(USTACKTOP - size);
+        //printk("Copying va: %p\n", ptr);
+
+        // Get pa of forked task stack
+        page = page_lookup(ts->pgdir, ptr, NULL);
+        if (!page) {
+            printk("fork failed ummap va: %p\n", ptr);
+            return -1;
+        }
+        // map to UTEMP
+        page_insert(cur_task->pgdir, page, UTEMP - PGSIZE, PTE_W);
+
+        // Copy
+        //printk("%p to %p start \n", ptr, UTEMP - PGSIZE);
+        memcpy( UTEMP - PGSIZE, ptr, PGSIZE);
+
+        //printk("%p to %p  end \n", ptr, UTEMP - PGSIZE);
+        // Unmap
+        page_remove(cur_task->pgdir, UTEMP - PGSIZE); 
+    }
+  
 	if ((uint32_t)cur_task)
 	{
-    /* Step 4: All user program use the same code for now */
+    // Step 4: All user program use the same code for now 
     setupvm(tasks[pid].pgdir, (uint32_t)UTEXT_start, UTEXT_SZ);
     setupvm(tasks[pid].pgdir, (uint32_t)UDATA_start, UDATA_SZ);
     setupvm(tasks[pid].pgdir, (uint32_t)UBSS_start, UBSS_SZ);
     setupvm(tasks[pid].pgdir, (uint32_t)URODATA_start, URODATA_SZ);
 
 	}
+
+    // set return value
+    tasks[pid].tf.tf_regs.reg_eax = 0;
+    //ts->state = TASK_STOP;
+    return pid;
 }
 
-/* TODO: Lab5
+/* Lab5
  * We've done the initialization for you,
  * please make sure you understand the code.
  */

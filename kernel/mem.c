@@ -266,7 +266,7 @@ page_init(void)
 	
     /* lab4 */
     size_t i;
-    int cn = 0;;
+    size_t cn = 0;;
 	       // cprintf("PAGES: %d %d %d %d %d\n", PGNUM(PGSIZE), PGNUM(npages_basemem * PGSIZE),PGNUM(IOPHYSMEM), PGNUM(EXTPHYSMEM), PGNUM(PADDR(nextfree)));
 
 	for (i = 0; i < npages; i++) {
@@ -295,6 +295,7 @@ page_init(void)
     }
 
 	        cprintf("Total pages count: %d\n", npages);
+            num_free_pages = cn;
 	        cprintf("Free pages count: %d\n", cn);
 }
 
@@ -314,7 +315,8 @@ struct PageInfo *
 page_alloc(int alloc_flags)
 {
     /* lab4 */
-    volatile struct PageInfo* p;
+    //volatile 
+    struct PageInfo* p;
 
     if ( page_free_list == NULL ) {
         return NULL;
@@ -323,6 +325,7 @@ page_alloc(int alloc_flags)
     p = page_free_list;
     page_free_list = p->pp_link;
     p->pp_link = NULL;
+    num_free_pages--;
     if ( alloc_flags & ALLOC_ZERO ) {
         memset(page2kva(p), 0, PGSIZE);
     }
@@ -346,6 +349,7 @@ page_free(struct PageInfo *pp)
 
     pp->pp_link = page_free_list;
     page_free_list = pp;
+    num_free_pages++;
 
 }
 
@@ -431,7 +435,7 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
     /* lab4 */
-    uintptr_t vend;
+    //uintptr_t vend;
 
     size_t i = 0;
     size_t end;
@@ -440,7 +444,7 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 
     end = size;
     for ( ; i < end ; i+= PGSIZE, va += PGSIZE, pa += PGSIZE ) {
-        pte = pgdir_walk(pgdir, va, true);
+        pte = pgdir_walk(pgdir, (const void *) va, true);
         assert( pte != 0);
         *pte = pa | perm | PTE_P;
     }
@@ -597,7 +601,7 @@ setupvm(pde_t *pgdir, uint32_t start, uint32_t size)
 }
 
 
-/* TODO: Lab 5
+/*  Lab 5
  * Set up kernel part of a page table.
  * You should map the kernel part memory with appropriate permission
  * Return a pointer to newly created page directory
@@ -605,10 +609,28 @@ setupvm(pde_t *pgdir, uint32_t start, uint32_t size)
 pde_t *
 setupkvm()
 {
+    pde_t *pgd;
+    struct PageInfo* p;
+
+    p = page_alloc(ALLOC_ZERO);
+    pgd = page2kva(p);
+
+    // Too much region ??
+    boot_map_region(pgd, UPAGES, ROUNDUP((sizeof(struct PageInfo) * npages), PGSIZE), PADDR(pages), (PTE_U | PTE_P));
+
+    boot_map_region(pgd, KSTACKTOP-KSTKSIZE, KSTKSIZE, PADDR(bootstack), (PTE_W | PTE_P));
+
+    long ss = (0xffffffff - KERNBASE) +1;
+    boot_map_region(pgd, KERNBASE, ROUNDUP(ss, PGSIZE), 0, (PTE_W) | (PTE_P));
+
+    boot_map_region(pgd, IOPHYSMEM, ROUNDUP((EXTPHYSMEM - IOPHYSMEM), PGSIZE), IOPHYSMEM, (PTE_W) | (PTE_P));
+
+
+    return pgd;
 }
 
 
-/* TODO: Lab 5
+/* Lab 5
  * Please maintain num_free_pages yourself
  */
 /* This is the system call implementation of get_num_free_page */
@@ -646,7 +668,6 @@ check_page_free_list(bool only_low_memory)
 	if (only_low_memory) {
 		// Move pages with lower addresses first in the free
 		// list, since entry_pgdir does not map all pages.
-        // TODO why ? problem here
 		struct PageInfo *pp1, *pp2;
 		struct PageInfo **tp[2] = { &pp1, &pp2 };
 		for (pp = page_free_list; pp; pp = pp->pp_link) {
