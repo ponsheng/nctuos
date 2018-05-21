@@ -118,7 +118,7 @@ int task_create()
     int ret;
     int size;
     struct PageInfo *page;
-    for ( size = PGSIZE; size < USR_STACK_SIZE; size += PGSIZE) {
+    for ( size = PGSIZE; size <= USR_STACK_SIZE; size += PGSIZE) {
         //printk("VM: %x\n", USTACKTOP);
         page = page_alloc(0);
         if ( ! page ) {
@@ -182,7 +182,7 @@ static void task_free(int pid)
     lcr3(PADDR(kern_pgdir));
 
     int size;
-    for ( size = PGSIZE; size < USR_STACK_SIZE; size += PGSIZE) {
+    for ( size = PGSIZE; size <= USR_STACK_SIZE; size += PGSIZE) {
         page_remove(ts->pgdir, (void*) USTACKTOP - size);
     }
     // FIXME why not kernel pages
@@ -196,6 +196,7 @@ static void task_free(int pid)
 void sys_kill(int pid)
 {
 	if (pid > 0 && pid < NR_TASKS)
+	//if (pid > 0 && pid < NR_TASKS)
 	{
         //printk("Killed #%d\n", pid);
 	    // Lab 5
@@ -257,7 +258,7 @@ int sys_fork()
    // 2. memcopy
    // 3. unmap
    // 4. finish
-    for ( size = PGSIZE; size < USR_STACK_SIZE; size += PGSIZE) {
+    for ( size = PGSIZE; size <= USR_STACK_SIZE; size += PGSIZE) {
         // Target va
         ptr = (void*)(USTACKTOP - size);
         //printk("Copying va: %p\n", ptr);
