@@ -10,6 +10,7 @@ enum {
 	SYS_getcid,
 	SYS_fork,
 	SYS_kill,
+	SYS_kill_self,
 	SYS_sleep,
   SYS_get_num_used_page,
   SYS_get_num_free_page,
@@ -37,6 +38,7 @@ int32_t getpid(void);
 int32_t getcid(void);
 
 void kill_self();
+void kill( int pid);
 
 void sleep(uint32_t ticks);
 

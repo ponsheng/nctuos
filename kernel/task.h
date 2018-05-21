@@ -49,9 +49,11 @@ void task_init();
 void task_init_percpu();
 void env_pop_tf(struct Trapframe *tf);
 
-/* TODO Lab 5
+/* Lab 5
  * Interface for real implementation of kill and fork
  * Since their real implementation should be in kernel/task.c
  */
 
+int32_t sys_fork();
+void sys_kill(int pid);
 #endif

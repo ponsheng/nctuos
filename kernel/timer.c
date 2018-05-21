@@ -37,16 +37,26 @@ void timer_handler(struct Trapframe *tf)
 
   if (cur_task != NULL)
   {
-  /* TODO: Lab 5
-   * 1. Maintain the status of slept tasks
-   * 
-   * 2. Change the state of the task if needed
-   *
-   * 3. Maintain the time quantum of the current task
-   *
-   * 4. sched_yield() if the time is up for current task
-   *
-   */
+  /* Lab 5  */
+   //1. Maintain the status of slept tasks
+   //2. Change the state of the task if needed
+   int remind_sleep;
+   
+   for ( i = 0; i < NR_TASKS; i++ ) {
+        if ( tasks[i].state == TASK_SLEEP) {
+            remind_sleep =  --tasks[i].remind_ticks;
+            if ( !remind_sleep ) {
+                tasks[i].state = TASK_RUNNABLE;
+            }
+        }
+   }
+   //* 3. Maintain the time quantum of the current task
+   cur_task->remind_ticks--;
+   //* 4. sched_yield() if the time is up for current task
+   if ( ! cur_task->remind_ticks ) {
+       cur_task->state = TASK_RUNNABLE;
+        sched_yield();
+   }
   }
 }
 

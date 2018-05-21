@@ -3,6 +3,11 @@
 #include <inc/shell.h>
 #include <inc/timer.h>
 
+extern int __text_start;
+extern int __text_end;
+extern int __data_start;
+extern int __data_end;
+
 struct Command {
 	const char *name;
 	const char *desc;
@@ -13,6 +18,7 @@ struct Command {
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
+	{ "chgcolor", "Change text to specifed color", mon_chgcolor },
 	{ "print_tick", "Display system tick", print_tick }
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
@@ -27,19 +33,45 @@ int mon_help(int argc, char **argv)
 	return 0;
 }
 
+int mon_chgcolor(int argc, char **argv)
+{
+	unsigned char forecolor = 0xFF;
+	if ( argc < 2) {
+		settextcolor(forecolor, 0);
+		cprintf("No color code provided, reset color\n");
+	} else {
+		if ( argv[1][0]  >= 'a' && argv[1][0]  <= 'f' ) {
+			forecolor = argv[1][0]- 'a' + 10;
+		} else if ( argv[1][0]  >= 'A' && argv[1][0]  <= 'F' ) {
+			forecolor = argv[1][0]- 'A' + 10;
+		} else if ( argv[1][0]  >= '0' && argv[1][0]  <= '9' ) {
+			forecolor = argv[1][0]- '0';
+		}
+		settextcolor(forecolor, 0);
+		cprintf("Change to %x color\n", forecolor);
+	}
+	return 0;
+}
+
 int mon_kerninfo(int argc, char **argv)
 {
-	/* TODO: Print the kernel code and data section size 
+	/* Print the kernel code and data section size 
    * NOTE: You can count only linker script (kernel/kern.ld) to
    *       provide you with those information.
    *       Use PROVIDE inside linker script and calculate the
    *       offset.
    */
+	cprintf("Kernel Info\n");
+	cprintf("Code section start: %p, end: %p\n", &__text_start, &__text_end);
+	cprintf("Code section size: %d\n", &__text_end - &__text_start);
+	cprintf("Data section start: %p, end: %p\n", &__data_start, &__data_end);
+	cprintf("Data section size: %d\n", &__data_end - &__data_start);
 	return 0;
 }
 int print_tick(int argc, char **argv)
 {
 	cprintf("Now tick = %d\n", get_tick());
+	return 0;
 }
 
 #define WHITESPACE "\t\r\n "

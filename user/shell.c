@@ -55,8 +55,9 @@ int chgcolor(int argc, char **argv)
   if (argc > 1)
   {
     char fore = argv[1][0] - '0';
-    settextcolor(fore, 0);
-    cprintf("Change color %d!\n", fore);
+    char back = argv[2][0] - '0';
+    settextcolor(fore, back);
+    cprintf("Change color %d %d!\n", fore, back);
   }
   else
   {
@@ -125,11 +126,12 @@ void task_job()
 
 int forktest(int argc, char **argv)
 {
+  int pid, ret;
+  cprintf("forktest\n");
   /* Below code is running on user mode */
-  if (!fork())
-  {
 
-    /*Child*/
+  if (! fork() ) {
+    //Child
     task_job();
     if (fork())
       task_job();
