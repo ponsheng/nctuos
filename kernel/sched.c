@@ -44,7 +44,7 @@
 void sched_yield(void)
 {
 	extern Task tasks[];
-	extern Task *cur_task;
+	//extern Task *cur_task;
 
     int pid;
     int i;

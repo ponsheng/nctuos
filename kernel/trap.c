@@ -1,6 +1,7 @@
 #include <kernel/trap.h>
 #include <kernel/task.h>
 #include <kernel/mem.h>
+#include <kernel/cpu.h>
 #include <inc/assert.h>
 #include <inc/mmu.h>
 #include <inc/x86.h>
@@ -151,7 +152,7 @@ trap_dispatch(struct Trapframe *tf)
 		if ((tf->tf_cs & 3) == 3)
 		{
 			// Trapped from user mode.
-			extern Task *cur_task;
+			//extern Task *cur_task;
 
 			// Disable interrupt first
 			// Think: Why we disable interrupt here?

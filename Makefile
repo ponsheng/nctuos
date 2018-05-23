@@ -15,12 +15,13 @@ CFLAGS += -I.
 OBJDIR = .
 
 CPUS ?= 1
+#CPUS ?= 4
 IMG=Kernel.img
 
 include boot/Makefile
 include kernel/Makefile
 
-all: boot/boot kernel/system
+all: clean boot/boot kernel/system
 	dd if=/dev/zero of=$(OBJDIR)/$(IMG) count=10000 2>/dev/null
 	dd if=$(OBJDIR)/boot/boot of=$(OBJDIR)/$(IMG) conv=notrunc 2>/dev/null
 	dd if=$(OBJDIR)/kernel/system of=$(OBJDIR)/$(IMG) seek=1 conv=notrunc 2>/dev/null
@@ -32,7 +33,8 @@ clean:
 	rm -rf $(OBJDIR)/user/*.o
 	rm -rf $(OBJDIR)/user/*.asm
 
-QEMU_ARG= --curses -smp $(CPUS)
+CURSE ?= --curses
+QEMU_ARG= $(CURSE) -smp $(CPUS)
 
 qemu:
 	#qemu-system-i386 -hda kernel.img -monitor stdio -smp $(CPUS)

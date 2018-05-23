@@ -51,7 +51,7 @@ struct Pseudodesc gdt_pd = {
 
 
 
-static struct tss_struct tss;
+//static struct tss_struct tss;
 Task tasks[NR_TASKS];
 
 extern char bootstack[];
@@ -66,7 +66,8 @@ uint32_t UDATA_SZ;
 uint32_t UBSS_SZ;
 uint32_t URODATA_SZ;
 
-Task *cur_task = NULL; //Current running task
+//Task *cur_task = NULL; //Current running task
+
 
 extern void sched_yield(void);
 
@@ -351,36 +352,45 @@ void task_init()
 //
 void task_init_percpu()
 {
-	
+    	
+   // Task *cur_task = NULL; //Current running task
+    //#define cur_task  (cpus[cpunum()].cpu_task)
 
 	int i;
 	extern int user_entry();
 	extern int idle_entry();
-	
+    int cpu = cpunum();
+    struct tss_struct *tss = &(cpus[cpu].cpu_tss);
 	// Setup a TSS so that we get the right stack
 	// when we trap to the kernel.
-	memset(&(tss), 0, sizeof(tss));
-	tss.ts_esp0 = (uint32_t)bootstack + KSTKSIZE;
-	tss.ts_ss0 = GD_KD;
+	memset(tss, 0, sizeof(struct tss_struct));
+	//tss->ts_esp0 = (uint32_t)bootstack + KSTKSIZE;
+	tss->ts_esp0 = (uint32_t)(percpu_kstacks[cpu] + KSTKSIZE);
+	tss->ts_ss0 = GD_KD;
 
 	// fs and gs stay in user data segment
-	tss.ts_fs = GD_UD | 0x03;
-	tss.ts_gs = GD_UD | 0x03;
+	tss->ts_fs = GD_UD | 0x03;
+	tss->ts_gs = GD_UD | 0x03;
 
 	/* Setup TSS in GDT */
-	gdt[GD_TSS0 >> 3] = SEG16(STS_T32A, (uint32_t)(&tss), sizeof(struct tss_struct), 0);
-	gdt[GD_TSS0 >> 3].sd_s = 0;
+	gdt[(GD_TSS0 >> 3) + cpu] = SEG16(STS_T32A, (uint32_t)(tss), sizeof(struct tss_struct), 0);
+	gdt[(GD_TSS0 >> 3) + cpu].sd_s = 0;
 
 	/* Setup first task */
 	i = task_create();
 	cur_task = &(tasks[i]);
+//#define cur_task   ((Task*) &(cpus[cpunum()]->cpu_task))
 
 	/* For user program */
 	setupvm(cur_task->pgdir, (uint32_t)UTEXT_start, UTEXT_SZ);
 	setupvm(cur_task->pgdir, (uint32_t)UDATA_start, UDATA_SZ);
 	setupvm(cur_task->pgdir, (uint32_t)UBSS_start, UBSS_SZ);
 	setupvm(cur_task->pgdir, (uint32_t)URODATA_start, URODATA_SZ);
-	cur_task->tf.tf_eip = (uint32_t)user_entry;
+    if ( cpu ==  bootcpu->cpu_id ) {
+	    cur_task->tf.tf_eip = (uint32_t)user_entry;
+    } else {
+	    cur_task->tf.tf_eip = (uint32_t)idle_entry;
+    }
 
 	/* Load GDT&LDT */
 	lgdt(&gdt_pd);
@@ -389,7 +399,8 @@ void task_init_percpu()
 	lldt(0);
 
 	// Load the TSS selector 
-	ltr(GD_TSS0);
+	ltr(GD_TSS0 + (cpu << 3));
 
 	cur_task->state = TASK_RUNNING;
+    printk("task_init suceed\n");
 }

@@ -6,6 +6,7 @@
 #define NR_TASKS	10
 #define TIME_QUANT	100
 
+
 typedef enum
 {
 	TASK_FREE = 0,
@@ -29,6 +30,9 @@ typedef struct
 	
 } Task;
 
+// Lab6 replace global symbol
+#define cur_task  (cpus[cpunum()].cpu_task)
+
 // TODO Lab6
 // 
 // Design your Runqueue structure for cpu
@@ -41,7 +45,8 @@ typedef struct
 //
 typedef struct
 {
-
+  int id;
+  Task* task_list;
 } Runqueue;
 
 

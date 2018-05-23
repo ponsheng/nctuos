@@ -189,8 +189,8 @@ mem_init(void)
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
     /* lab4 */
+    // For Single core
     //boot_map_region(kern_pgdir, KSTACKTOP-KSTKSIZE, KSTKSIZE, PADDR(bootstack), (PTE_W | PTE_P));
-//>>>>>>> lab5 TODO
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
@@ -201,10 +201,9 @@ mem_init(void)
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
     /* lab4 */
+    // For single core
     long ss = (0xffffffff - KERNBASE) +1;
-    //cprintf("kernel physical: base %x size %x", KERNBASE, ss);
-//    boot_map_region(kern_pgdir, KERNBASE, ROUNDUP(ss, PGSIZE), 0, (PTE_W) | (PTE_P));
-//>>>>>>> lab5 TODO
+    boot_map_region(kern_pgdir, KERNBASE, ROUNDUP(ss, PGSIZE), 0, (PTE_W) | (PTE_P));
 
 	//////////////////////////////////////////////////////////////////////
 	// Map VA range [IOPHYSMEM, EXTPHYSMEM) to PA range [IOPHYSMEM, EXTPHYSMEM)
@@ -258,9 +257,14 @@ mem_init_mp(void)
 	//             it will fault rather than overwrite another CPU's stack.
 	//             Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
-	// TODO:
+	//
 	// Lab6: Your code here:
-
+    int i;
+    for ( i = 0; i < NCPU; i++ ) {
+        //                              Top
+        boot_map_region(kern_pgdir, (KSTACKTOP - i * (KSTKSIZE + KSTKGAP)) - KSTKSIZE
+                , KSTKSIZE, PADDR(percpu_kstacks[i]), PTE_W | PTE_P);
+    }
 }
 
 // --------------------------------------------------------------
@@ -296,7 +300,7 @@ page_init(void)
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
 	
-	/* Lab6  TODO:
+	/* Lab6:
 	 * 
 	 * modify your implementation to avoid adding the page at
 	 * MPENTRY_PADDR to the free list, so that we can safely
@@ -311,7 +315,10 @@ page_init(void)
         if (i == 0) {
             pages[i].pp_ref = 1;
             pages[i].pp_link = NULL;
-        } else if ( i >= PGNUM(IOPHYSMEM) && i <= PGNUM(EXTPHYSMEM)) {
+        } else if ( i == PGNUM(MPENTRY_PADDR)) {  // lab6
+            pages[i].pp_ref = 1;
+            pages[i].pp_link = NULL;
+        }else if ( i >= PGNUM(IOPHYSMEM) && i <= PGNUM(EXTPHYSMEM)) {
             pages[i].pp_ref = 1;
             pages[i].pp_link = NULL;
         } else if ( i > PGNUM(EXTPHYSMEM) && i < PGNUM(PADDR(nextfree))) {
@@ -328,13 +335,13 @@ page_init(void)
             page_free_list = &pages[i];
             cn++;
         } else {
-	        cprintf("Undefined page num: %d\n", i);
+	        printk("Undefined page num: %d\n", i);
         }
     }
 
-	        cprintf("Total pages count: %d\n", npages);
+	        printk("Total pages count: %d\n", npages);
             num_free_pages = cn;
-	        cprintf("Free pages count: %d\n", cn);
+	        printk("Free pages count: %d\n", cn);
 }
 
 //
@@ -642,6 +649,7 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// value will be preserved between calls to mmio_map_region
 	// (just like nextfree in boot_alloc).
 	static uintptr_t base = MMIOBASE;
+    uintptr_t ret;
 
 	// Reserve size bytes of virtual memory starting at base and
 	// map physical pages [pa,pa+size) to virtual addresses
@@ -660,11 +668,16 @@ mmio_map_region(physaddr_t pa, size_t size)
 	//
 	// Hint: The TA solution uses boot_map_region.
 	//
-	// Lab6 TODO
+	// Lab6
 	// Your code here:
-	
-
-	panic("mmio_map_region not implemented");
+    if ( ROUNDUP(size, PGSIZE) + base > MMIOLIM) {
+	    panic("mmio_map_region exceed MMIOLIM");
+    }
+    boot_map_region(kern_pgdir, base, ROUNDUP(size, PGSIZE), pa, PTE_PCD | PTE_PWT | PTE_W );
+    ret = base;
+    base += ROUNDUP(size, PGSIZE);
+    return ret;
+	//panic("mmio_map_region not implemented");
 }
 
 /* This is a simple wrapper function for mapping user program */
@@ -676,14 +689,14 @@ setupvm(pde_t *pgdir, uint32_t start, uint32_t size)
 }
 
 
-/* TODO: Lab 5 
+/* Lab 5 
  * Set up kernel part of a page table.
  * You should map the kernel part memory with appropriate permission
  * Return a pointer to newly created page directory
  *
  * TODO: Lab6
  * You should also map:
- * 1. per-CPU kernel stack
+ * 1. per-CPU kernel stack  - Done
  * 2. MMIO region for local apic
  *
  */
@@ -696,10 +709,22 @@ setupkvm()
     p = page_alloc(ALLOC_ZERO);
     pgd = page2kva(p);
 
-    // Too much region ??
     boot_map_region(pgd, UPAGES, ROUNDUP((sizeof(struct PageInfo) * npages), PGSIZE), PADDR(pages), (PTE_U | PTE_P));
 
-    boot_map_region(pgd, KSTACKTOP-KSTKSIZE, KSTKSIZE, PADDR(bootstack), (PTE_W | PTE_P));
+
+// Stack
+    //boot_map_region(pgd, KSTACKTOP-KSTKSIZE, KSTKSIZE, PADDR(bootstack), (PTE_W | PTE_P));
+    int i;
+    for ( i = 0; i < NCPU; i++ ) {
+        //                              Top
+        boot_map_region(pgd, (KSTACKTOP - i * (KSTKSIZE + KSTKGAP)) - KSTKSIZE
+                , KSTKSIZE, PADDR(percpu_kstacks[i]), PTE_W | PTE_P);
+    }
+// lapic
+    extern uint32_t *lapic;
+    //lapic = mmio_map_region(lapicaddr, 4096);
+    boot_map_region(pgd, lapic, ROUNDUP(4096, PGSIZE), lapicaddr, PTE_PCD | PTE_PWT | PTE_W );
+
 
     long ss = (0xffffffff - KERNBASE) +1;
     boot_map_region(pgd, KERNBASE, ROUNDUP(ss, PGSIZE), 0, (PTE_W) | (PTE_P));
@@ -707,7 +732,8 @@ setupkvm()
     boot_map_region(pgd, IOPHYSMEM, ROUNDUP((EXTPHYSMEM - IOPHYSMEM), PGSIZE), IOPHYSMEM, (PTE_W) | (PTE_P));
 
 
-    return pgd;
+    //boot_map_region(kern_pgdir, base, ROUNDUP(size, PGSIZE), pa, PTE_PCD | PTE_PWT | PTE_W );
+    return pgd; 
 }
 
 

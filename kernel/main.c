@@ -12,7 +12,7 @@
 
 extern void init_video(void);
 static void boot_aps(void);
-extern Task *cur_task;
+///extern Task *cur_task;
 
 void kernel_main(void)
 {
@@ -64,11 +64,16 @@ void *mpentry_kstack;
 static void
 boot_aps(void)
 {
+    int i;
 	// TODO: Lab6
 	//
 	// 1. Write AP entry code (kernel/mpentry.S) to unused memory
 	//    at MPENTRY_PADDR. (use memmove() in lib/string.c)
-	//
+    extern void mpentry_start();
+    extern void mpentry_end();
+	memmove( KADDR(MPENTRY_PADDR), mpentry_start, mpentry_end - mpentry_start);
+
+
 	// 2. Boot each AP one at a time (the cpu structure is defined
 	//    in kernel/cpu.h ). In order to do this, you must:
 	//      -- Tell mpentry.S what stack to use (we communicates the
@@ -78,6 +83,19 @@ boot_aps(void)
 	//      -- Wait for the CPU to finish some basic setup in mp_main(
 	// 
 	// Your code here:
+
+    for ( i = 1; i < ncpu; i++) {
+        //CpuInfo* cpu;
+        //cpu = &cpus[i];
+
+        // set top of stack
+        mpentry_kstack = percpu_kstacks[i]+ KSTKSIZE;//(KSTACKTOP - i * (KSTKSIZE + KSTKGAP));
+
+        lapic_startap(i, MPENTRY_PADDR); // FIXME k or p
+        //while(1) {}
+        while ( cpus[i].cpu_status != CPU_STARTED) {}
+        printk("SMP #%d booted\n", i);
+    }
 }
 
 // Setup code for APs
@@ -148,10 +166,26 @@ mp_main(void)
 	
 	// We are in high EIP now, safe to switch to kern_pgdir 
 	lcr3(PADDR(kern_pgdir));
-	printk("SMP: CPU %d starting\n", cpunum());
+	printk("SMP: CPU ");
+    printk("%d starting\n", cpunum());
 	
+    //thiscpu->cpu_status = CPU_STARTED;
+    while(1){}
 	// Your code here:
-	
+
+	//init_video();
+  	//mem_init();
+	//mp_init();
+	lapic_init();
+  	//task_init();
+    task_init_percpu();
+	//trap_init();
+	//lidt(&idt_pd);  // TODO
+	//pic_init();
+	//kbd_init();
+  	//timer_init();
+  	//syscall_init();
+	//boot_aps();
 
 	// TODO: Lab6
 	// Now that we have finished some basic setup, it's time to tell
@@ -159,9 +193,21 @@ mp_main(void)
 	// Your code here:
 
 
+    thiscpu->cpu_status = CPU_STARTED;
+    while(1){}
+
+    /*{
+    asm volatile(
+            "mov %0, %%eax\n\t" \
+            "xchg %%eax, %1\n\t" \
+            :: "i" (CPU_STARTED) ,"m" (thiscpu->cpu_status));
+    }*/
+
+
 
 	/* Enable interrupt */
 	__asm __volatile("sti");
+    while(1){}
 
 	lcr3(PADDR(thiscpu->cpu_task->pgdir));
 
