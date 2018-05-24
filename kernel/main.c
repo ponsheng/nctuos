@@ -65,7 +65,7 @@ static void
 boot_aps(void)
 {
     int i;
-	// TODO: Lab6
+	// Lab6
 	//
 	// 1. Write AP entry code (kernel/mpentry.S) to unused memory
 	//    at MPENTRY_PADDR. (use memmove() in lib/string.c)
@@ -94,7 +94,7 @@ boot_aps(void)
         lapic_startap(i, MPENTRY_PADDR); // FIXME k or p
         //while(1) {}
         while ( cpus[i].cpu_status != CPU_STARTED) {}
-        printk("SMP #%d booted\n", i);
+        printk("SMP: CPU %d booted\n", i);
     }
 }
 
@@ -146,7 +146,7 @@ mp_main(void)
 	 *
 	 * 5. Per-CPU Runqueue
 	 *
-	 * TODO: Lab6
+	 *  Lab6
 	 *
 	 * 1. Modify mem_init_mp() (in kernel/mem.c) to map per-CPU stacks.
 	 *    Your code should pass the new check in check_kern_pgdir().
@@ -169,8 +169,6 @@ mp_main(void)
 	printk("SMP: CPU ");
     printk("%d starting\n", cpunum());
 	
-    //thiscpu->cpu_status = CPU_STARTED;
-    while(1){}
 	// Your code here:
 
 	//init_video();
@@ -180,34 +178,27 @@ mp_main(void)
   	//task_init();
     task_init_percpu();
 	//trap_init();
-	//lidt(&idt_pd);  // TODO
+	lidt(&idt_pd);
 	//pic_init();
 	//kbd_init();
   	//timer_init();
   	//syscall_init();
 	//boot_aps();
 
-	// TODO: Lab6
+	// Lab6
 	// Now that we have finished some basic setup, it's time to tell
 	// boot_aps() we're up ( using xchg )
 	// Your code here:
 
-
     thiscpu->cpu_status = CPU_STARTED;
-    while(1){}
-
-    /*{
-    asm volatile(
+    //xchg(thiscpu->cpu_status, CPU_STARTED);
+    /*asm volatile(
             "mov %0, %%eax\n\t" \
             "xchg %%eax, %1\n\t" \
-            :: "i" (CPU_STARTED) ,"m" (thiscpu->cpu_status));
-    }*/
-
-
+            :: "i" (CPU_STARTED) ,"m" (thiscpu->cpu_status));*/
 
 	/* Enable interrupt */
 	__asm __volatile("sti");
-    while(1){}
 
 	lcr3(PADDR(thiscpu->cpu_task->pgdir));
 

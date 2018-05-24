@@ -676,7 +676,7 @@ mmio_map_region(physaddr_t pa, size_t size)
     boot_map_region(kern_pgdir, base, ROUNDUP(size, PGSIZE), pa, PTE_PCD | PTE_PWT | PTE_W );
     ret = base;
     base += ROUNDUP(size, PGSIZE);
-    return ret;
+    return (void*)ret;
 	//panic("mmio_map_region not implemented");
 }
 
@@ -694,7 +694,7 @@ setupvm(pde_t *pgdir, uint32_t start, uint32_t size)
  * You should map the kernel part memory with appropriate permission
  * Return a pointer to newly created page directory
  *
- * TODO: Lab6
+ * Lab6
  * You should also map:
  * 1. per-CPU kernel stack  - Done
  * 2. MMIO region for local apic
@@ -722,8 +722,7 @@ setupkvm()
     }
 // lapic
     extern uint32_t *lapic;
-    //lapic = mmio_map_region(lapicaddr, 4096);
-    boot_map_region(pgd, lapic, ROUNDUP(4096, PGSIZE), lapicaddr, PTE_PCD | PTE_PWT | PTE_W );
+    boot_map_region(pgd, (uintptr_t)lapic, ROUNDUP(4096, PGSIZE), lapicaddr, PTE_PCD | PTE_PWT | PTE_W );
 
 
     long ss = (0xffffffff - KERNBASE) +1;
