@@ -117,10 +117,11 @@ void task_job()
 
 	pid = getpid();
 	cid = getcid();
-	for (i = 0; i < 10; i++)
+	//for (i = 0; i < 10; i++)
+	for (i = 0; i < 3; i++)
 	{
 		cprintf("Pid=%d, Cid=%d, now=%d\n", pid, cid, i);
-		sleep(100);
+		sleep(5);
 	}
 }
 
@@ -183,14 +184,16 @@ void shell()
     buf = readline("OSDI> ");
     if (buf != NULL)
     {
-      strcpy(hist[hist_tail], buf);
-      hist_tail = (hist_tail + 1) % SHELL_HIST_MAX;
-      if (hist_head == hist_tail)
-      {
-        hist_head = (hist_head + 1) % SHELL_HIST_MAX;
-        hist[hist_tail][0] = 0;
+      if ( buf[0] != 0 ) {
+          strcpy(hist[hist_tail], buf);
+          hist_tail = (hist_tail + 1) % SHELL_HIST_MAX;
+          if (hist_head == hist_tail)
+          {
+            hist_head = (hist_head + 1) % SHELL_HIST_MAX;
+            hist[hist_tail][0] = 0;
+          }
+          hist_curr = hist_tail;
       }
-      hist_curr = hist_tail;
 
       if (runcmd(buf) < 0)
         break;
