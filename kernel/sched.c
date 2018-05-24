@@ -23,7 +23,7 @@
 */
 
 //
-// TODO: Lab6
+// Lab6
 // Modify your Round-robin scheduler to fit the multi-core
 // You should:
 //
@@ -43,24 +43,29 @@
 //
 void sched_yield(void)
 {
-	extern Task tasks[];
+	//extern Task tasks[];
 	//extern Task *cur_task;
 
-    int pid;
     int i;
     Task* pretask = cur_task;
+    Task* t;
 
-    for ( pid = pretask->task_id + 1, i = 0; i < NR_TASKS; i++, pid++) {
-        
-        if (pid >= NR_TASKS) {
-            pid -= NR_TASKS;
+    t = cur_task->next_task;
+    cur_task = NULL;
+    for ( i = 0; i < thiscpu->cpu_rq.count; i++, t = t->next_task ) {
+        if ( t == thiscpu->cpu_rq.task_list_tail ) {
+            continue;
         }
-        if ( tasks[pid].state == TASK_RUNNABLE) {
-            cur_task = &tasks[pid];
+        if ( t->state == TASK_RUNNABLE ) {
+            cur_task = t;
             break;
         }
     }
-    // FIXME What if no task? idle task??
+    if ( !cur_task ) {
+        //printk("CPU %d use idle\n", cpunum());
+        cur_task = thiscpu->cpu_rq.task_list_tail;
+    }
+
     cur_task->state = TASK_RUNNING;
     cur_task->remind_ticks = TIME_QUANT;
 
@@ -69,6 +74,7 @@ void sched_yield(void)
 //       printk("#%d yield to %d\n", pretask->task_id, cur_task->task_id);
         
        lcr3(PADDR(cur_task->pgdir));
+       lapic_eoi();
        ctx_switch(cur_task);
     } else {
         return;

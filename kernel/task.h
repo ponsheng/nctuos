@@ -3,7 +3,7 @@
 
 #include <inc/trap.h>
 #include <kernel/mem.h>
-#define NR_TASKS	10
+#define NR_TASKS	30
 #define TIME_QUANT	100
 
 
@@ -19,7 +19,7 @@ typedef enum
 // Each task's user space
 #define USR_STACK_SIZE	(40960)
 
-typedef struct
+typedef struct Task
 {
 	int task_id;
 	int parent_id;
@@ -27,13 +27,14 @@ typedef struct
 	int32_t remind_ticks;
 	TaskState state;	//Task state
   pde_t *pgdir;  //Per process Page Directory
-	
+  // Lab6
+  struct Task  *next_task;	
 } Task;
 
 // Lab6 replace global symbol
 #define cur_task  (cpus[cpunum()].cpu_task)
 
-// TODO Lab6
+// Lab6
 // 
 // Design your Runqueue structure for cpu
 // your runqueue sould have at least two
@@ -45,8 +46,10 @@ typedef struct
 //
 typedef struct
 {
-  int id;
-  Task* task_list;
+  int count;
+  //circular  list->[A]->[B]->[C]->[A]
+  Task *task_list;
+  Task *task_list_tail;  // Use this to record idle
 } Runqueue;
 
 

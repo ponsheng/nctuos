@@ -20,7 +20,7 @@ void set_timer(int hz)
 
 /* It is timer interrupt handler */
 //
-// TODO: Lab6
+// Lab6
 // Modify your timer_handler to support Multi processor
 // Don't forget to acknowledge the interrupt using lapic_eoi()
 //
@@ -31,8 +31,7 @@ void timer_handler(struct Trapframe *tf)
 
   jiffies++;
 
-  extern Task tasks[];
-
+  // extern Task tasks[];
   //extern Task *cur_task;
 
   if (cur_task != NULL)
@@ -41,12 +40,14 @@ void timer_handler(struct Trapframe *tf)
    //1. Maintain the status of slept tasks
    //2. Change the state of the task if needed
    int remind_sleep;
-   
-   for ( i = 0; i < NR_TASKS; i++ ) {
-        if ( tasks[i].state == TASK_SLEEP) {
-            remind_sleep =  --tasks[i].remind_ticks;
+  
+   //  Only do for own runqueue
+   Task* t = thiscpu->cpu_rq.task_list;
+   for ( i = 0; i < thiscpu->cpu_rq.count; i++, t = t->next_task ) {
+        if ( t->state == TASK_SLEEP) {
+            remind_sleep =  --t->remind_ticks;
             if ( !remind_sleep ) {
-                tasks[i].state = TASK_RUNNABLE;
+                t->state = TASK_RUNNABLE;
             }
         }
    }
@@ -58,6 +59,9 @@ void timer_handler(struct Trapframe *tf)
         sched_yield();
    }
   }
+
+  // TODO
+  lapic_eoi();
 }
 
 unsigned long sys_get_ticks()

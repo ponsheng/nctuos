@@ -6,6 +6,7 @@
 #include <kernel/task.h>
 #include <kernel/mem.h>
 #include <kernel/cpu.h>
+#include <kernel/spinlock.h>
 
 // Global descriptor table.
 //
@@ -68,6 +69,7 @@ uint32_t URODATA_SZ;
 
 //Task *cur_task = NULL; //Current running task
 
+struct spinlock task_lock[NCPU];
 
 extern void sched_yield(void);
 
@@ -145,7 +147,7 @@ int task_create()
     ts->state = TASK_RUNNABLE;
     ts->remind_ticks = TIME_QUANT;
 
-    printk("task #%d created\n", i);
+    //printk("task #%d created\n", i);
     return ts->task_id;
 
 create_error:
@@ -196,7 +198,36 @@ static void task_free(int pid)
     pgdir_remove(ts->pgdir);
 }
 
-// Lab6 TODO
+// Input:
+//      runqueue
+//      pid
+// Output:
+//      Task pointer or NULL
+//      Index in queue or -1
+//      last Task or NULL
+Task* get_task_from_rq(Runqueue* rq, int pid, int* index, Task** last)
+{
+    Task* t = rq->task_list;
+    Task* _last = NULL;
+    int i;
+    for ( i = 0; i < rq->count; i++ ) {
+        if ( t->task_id == pid ) {
+            break; 
+        }
+        _last = t;
+        t = t->next_task;
+    }
+
+    if ( last ) {
+        *last = _last;
+    }
+    if ( index ) {
+        *index = i;
+    }
+    return t;
+}
+
+// Lab6
 //
 // Modify it so that the task will be removed form cpu runqueue
 // ( we not implement signal yet so do not try to kill process
@@ -208,10 +239,34 @@ void sys_kill(int pid)
 	if (pid > 0 && pid < NR_TASKS)
 	//if (pid > 0 && pid < NR_TASKS)
 	{
-        //printk("Killed #%d\n", pid);
+        int index;
+        Task* last;
+
+        spin_lock(&task_lock[cpunum()]);
+
+        Task* t = get_task_from_rq(&thiscpu->cpu_rq, pid, &index, &last);
+
+        if ( !t ) return;
+
+        // Need to except idle task
+        if ( t == thiscpu->cpu_rq.task_list_tail ) {
+            return;
+        }
+        // Take out from list
+        if ( last ) {
+            last->next_task = t->next_task;
+        } else {  // first one
+            thiscpu->cpu_rq.task_list = t->next_task;
+            thiscpu->cpu_rq.task_list_tail->next_task = t->next_task;
+        }
+        thiscpu->cpu_rq.count--;
+
+        spin_unlock(&task_lock[cpunum()]);
+
 	    // Lab 5
         // Remember to change the state of tasks
         tasks[pid].state = TASK_STOP;
+
         //Free the memory
         task_free(pid);
         //and invoke the scheduler for yield
@@ -248,7 +303,7 @@ void sys_kill(int pid)
  */
 
 //
-// Lab6 TODO:
+// Lab6
 //
 // Modify it so that the task will disptach to different cpu runqueue
 // (please try to load balance, don't put all task into one cpu)
@@ -269,7 +324,7 @@ int sys_fork()
     // copy tf
     ts->tf = cur_task->tf;
 
-   // TODO setup stack
+   // Setup stack
    // My strategy
    // 1. map new process's stack (pa) to somewhere in va (I use UTEMP)
    // 2. memcopy
@@ -311,6 +366,31 @@ int sys_fork()
     // set return value
     tasks[pid].tf.tf_regs.reg_eax = 0;
     //ts->state = TASK_STOP;
+
+    // FIXME Lock 
+    // Find least loading work
+    {
+        int i;
+        int least_work_cpu = 0;
+        int min = 100;
+        for ( i = 0; i < ncpu; i++ ) {
+            if ( cpus[i].cpu_rq.count < min ) {
+                least_work_cpu = i;
+                min = cpus[i].cpu_rq.count;
+            }
+        }
+
+
+        spin_lock(&task_lock[least_work_cpu]);
+
+        struct CpuInfo *cpu = &cpus[least_work_cpu];
+        cpu->cpu_rq.count++;
+        tasks[pid].next_task = cpu->cpu_rq.task_list;
+        cpu->cpu_rq.task_list = &tasks[pid];
+        cpu->cpu_rq.task_list_tail->next_task = &tasks[pid];
+        
+        spin_unlock(&task_lock[least_work_cpu]);
+    }
     return pid;
 }
 
@@ -337,7 +417,7 @@ void task_init()
 	task_init_percpu();
 }
 
-// Lab6 TODO
+// Lab6 
 //
 // Please modify this function to:
 //
@@ -402,5 +482,10 @@ void task_init_percpu()
 	ltr(GD_TSS0 + (cpu << 3));
 
 	cur_task->state = TASK_RUNNING;
-    printk("task_init suceed\n");
+
+    // Init runqueue with first task
+    thiscpu->cpu_rq.count = 1;
+    thiscpu->cpu_rq.task_list = cur_task;
+    thiscpu->cpu_rq.task_list_tail = cur_task;
+    cur_task->next_task = cur_task;
 }
