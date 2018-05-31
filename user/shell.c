@@ -74,8 +74,9 @@ int chgcolor(int argc, char **argv)
   if (argc > 1)
   {
     char fore = argv[1][0] - '0';
-    settextcolor(fore, 0);
-    cprintf("Change color %d!\n", fore);
+    char back = argv[2][0] - '0';
+    settextcolor(fore, back);
+    cprintf("Change color %d %d!\n", fore, back);
   }
   else
   {
@@ -135,20 +136,22 @@ void task_job()
 
 	pid = getpid();
 	cid = getcid();
-	for (i = 0; i < 10; i++)
+	//for (i = 0; i < 10; i++)
+	for (i = 0; i < 3; i++)
 	{
 		cprintf("Pid=%d, Cid=%d, now=%d\n", pid, cid, i);
-		sleep(100);
+		sleep(5);
 	}
 }
 
 int forktest(int argc, char **argv)
 {
+  int pid, ret;
+  cprintf("forktest\n");
   /* Below code is running on user mode */
-  if (!fork())
-  {
 
-    /*Child*/
+  if (! fork() ) {
+    //Child
     task_job();
     if (fork())
       task_job();
@@ -545,14 +548,16 @@ void shell()
     buf = readline("OSDI> ");
     if (buf != NULL)
     {
-      strcpy(hist[hist_tail], buf);
-      hist_tail = (hist_tail + 1) % SHELL_HIST_MAX;
-      if (hist_head == hist_tail)
-      {
-        hist_head = (hist_head + 1) % SHELL_HIST_MAX;
-        hist[hist_tail][0] = 0;
+      if ( buf[0] != 0 ) {
+          strcpy(hist[hist_tail], buf);
+          hist_tail = (hist_tail + 1) % SHELL_HIST_MAX;
+          if (hist_head == hist_tail)
+          {
+            hist_head = (hist_head + 1) % SHELL_HIST_MAX;
+            hist[hist_tail][0] = 0;
+          }
+          hist_curr = hist_tail;
       }
-      hist_curr = hist_tail;
 
       if (runcmd(buf) < 0)
         break;
