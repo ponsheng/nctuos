@@ -60,7 +60,6 @@ void timer_handler(struct Trapframe *tf)
    }
   }
 
-  // TODO
   lapic_eoi();
 }
 

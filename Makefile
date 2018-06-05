@@ -12,6 +12,9 @@ CFLAGS += -g
 
 CFLAGS += -I.
 
+# Ignore warning
+CFLAGS += -Wno-implicit-function-declaration
+
 OBJDIR = .
 
 CPUS ?= 1
@@ -37,23 +40,31 @@ clean:
 	rm -rf $(OBJDIR)/kernel/drv/*.o
 
 CURSE ?= --curses
+
+# -monitor stdio
+
 QEMU_ARG := $(CURSE) -smp $(CPUS)
 
 
-HDB := true
+HDB ?= true
 ifdef HDB
 
 HDB := lab7.img
+QEMU_ARG := -hdb $(HDB) $(QEMU_ARG) 
+
 # run this first
 # qemu-img create -f raw lab7.img 32M
-QEMU_ARG := $(QEMU_ARG) -hdb $(HDB)
+$(HDB):
+	qemu-img create -f raw lab7.img 32M
+
+hddump: $(HDB)
+	hexdump -C -v $^
 
 endif
 
-	#qemu-system-i386 -hda kernel.img -hdb lab7.img -monitor stdio -smp $(CPUS)
 
 qemu:
-	qemu-system-i386 -hda $(IMG) $(QEMU_ARG) #-monitor stdio
+	qemu-system-i386 -hda $(IMG) $(QEMU_ARG)
 
 debug:
-	qemu-system-i386 -hda $(IMG) -s -S $(QEMU_ARG) #-monitor stdio
+	qemu-system-i386 -hda $(IMG) $(QEMU_ARG) -s -S
