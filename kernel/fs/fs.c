@@ -25,7 +25,7 @@ struct fs_dev fat_fs = {
     .data = &fat
 };
     
-/*TODO: Lab7, VFS level file API.
+/* Lab7, VFS level file API.
  *  This is a virtualize layer. Please use the function pointer
  *  under struct fs_ops to call next level functions.
  *
@@ -78,11 +78,12 @@ int fs_init()
     /* Check need mkfs or not */
     if ((res = fs_mount("elmfat", "/", NULL)) != 0)
     {
+        printk("Res: %d Need mkfs\n", res);
         fat_fs.ops->mkfs("elmfat");
         res = fs_mount("elmfat", "/", NULL);
         return res;
     }
-    return -STATUS_EIO;
+    return -STATUS_EIO;  // FIXME ??
        
 }
 
@@ -94,37 +95,50 @@ int fs_init()
 */
 int fs_mount(const char* device_name, const char* path, const void* data)
 {
-    return -STATUS_EIO;
+    if ( strcmp(device_name, fat_fs.ops->dev_name) == 0 ) {
+        strncpy((char*)fat_fs.path, path, sizeof(fat_fs.path));
+        return fat_fs.ops->mount(&fat_fs, path);
+    } else {
+        printk("fs_mount: Unknown device name\n");
+        return -STATUS_EIO;
+    }
 } 
 
 /* Note: Before call ops->open() you may copy the path and flags parameters into fd object structure */
 int file_open(struct fs_fd* fd, const char *path, int flags)
 {
-
+    strcpy(fd->path, path);
+    fd->flags = flags;
+    return fat_fs.ops->open(fd);
 }
 
 int file_read(struct fs_fd* fd, void *buf, size_t len)
 {
-
+    return fat_fs.ops->read(fd, buf, len);
 }
 
 int file_write(struct fs_fd* fd, const void *buf, size_t len)
 {
-
+    return fat_fs.ops->write(fd, buf, len);
 }
 
 int file_close(struct fs_fd* fd)
 {
-
+    return fat_fs.ops->close(fd);
 }
 int file_lseek(struct fs_fd* fd, off_t offset)
 {
-
+    return fat_fs.ops->lseek(fd, offset);
 }
 int file_unlink(const char *path)
 {
+    return fat_fs.ops->unlink(NULL, path);
 }
 
+int file_getdents(struct fs_fd* fd, struct dirent* dirp, uint32_t count)
+{
+    return fat_fs.ops->getdents(fd, dirp, count);
+}
 
 /**
  * @ingroup Fd

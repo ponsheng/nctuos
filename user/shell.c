@@ -27,6 +27,9 @@ int filetest3(int argc, char **argv);
 int filetest4(int argc, char **argv);
 int filetest5(int argc, char **argv);
 int spinlocktest(int argc, char **argv);
+int ls(int argc, char **argv);
+int touch(int argc, char **argv);
+int rm(int argc, char **argv);
 
 
 struct Command commands[] = {
@@ -42,7 +45,10 @@ struct Command commands[] = {
   { "filetest3", "Laqrge block test", filetest3},
   { "filetest4", "Error test", filetest4},
   { "filetest5", "unlink test", filetest5},
-  { "spinlocktest", "Test spinlock", spinlocktest }
+  { "spinlocktest", "Test spinlock", spinlocktest },
+  { "ls", "List files", ls },
+  { "rm", "Remove files", rm },
+  { "touch", "Create files", touch }
 };
 const int NCOMMANDS = (sizeof(commands)/sizeof(commands[0]));
 
@@ -246,7 +252,9 @@ int filetest2(int argc, char **argv)
 }
 
 #define uassert(x)    \
-  do { if (!(x)) {cprintf("assertion failed: %s", #x); return 0;}} while (0)
+  do { if (!(x)) {\
+      cprintf("fd: %d ret: %d  ", fd, ret);\
+      cprintf("assertion failed: %s\n", #x); return 0;}} while (0)
 #define LARGE_SIZE 4000
 int filetest3(int argc, char **argv)
 {

@@ -39,7 +39,8 @@ FS_OBJS = kernel/fs/fat/ff.o \
 
 ULIB = lib/string.o lib/printf.o lib/printfmt.o lib/readline.o lib/console.o lib/syscall.o
 
-UPROG = user/shell.o user/main.o
+UPROG =  user/file_util.o user/shell.o user/main.o 
+
 
 kernel/drv/%.o: kernel/drv/%.c
 	$(CC) $(CFLAGS) -c -o $@ $<

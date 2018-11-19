@@ -36,10 +36,9 @@ void kernel_main(void)
   	timer_init();
   	syscall_init();
 	disk_init();
-	disk_test();
-	/*TODO: Lab7, uncommend it when you finish Lab7 3.1 part */
+	//disk_test();
 	fs_test();
-	// fs_init();
+	fs_init();
 	boot_aps();
 
 

@@ -113,13 +113,40 @@ int32_t do_syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, ui
     break;
   /* TODO: Lab7 file I/O system call */
   case SYS_open:
-  case SYS_read:
-  case SYS_write:
-  case SYS_close:
-  case SYS_lseek:
-  case SYS_unlink:
-    retVal = -1; //Not yet implemented
+    retVal = sys_open( (const char*) a1, a2, a3);
     break;
+
+  case SYS_read:
+    retVal = sys_read( a1, (void *) a2, a3);
+    break;
+
+  case SYS_write:
+    retVal = sys_write( a1, (void *) a2, a3);
+    break;
+  case SYS_close:
+    retVal = sys_close( a1 );
+    break;
+
+  case SYS_lseek:
+    retVal = sys_lseek( a1, a2, a3 );
+    break;
+
+  case SYS_unlink:
+    retVal = sys_unlink( (const char*) a1);
+    break;
+
+  case SYS_readdir:
+    retVal = sys_readdir( a1, (char*) a2, (int*)a3, (unsigned long *) a4);
+    break;
+/*
+  case SYS_sys_getdents:
+    retVal = sys_getdents( a1, (st) a2, (int*)a3, (unsigned long *) a4);
+    break;
+*/
+
+
+  default:
+    printk("Undefined syscall num");
   }
 	return retVal;
 }
