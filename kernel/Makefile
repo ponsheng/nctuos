@@ -68,7 +68,7 @@ kernel/fs/fat/%.o: kernel/fs/fat/%.c
 kernel/system: $(KERN_OBJS) $(DRV) $(ULIB) $(UPROG) $(FS_OBJS)
 	@echo + ld kernel/system
 
-	$(LD) $(LDFLAGS) $(KERN_LDFLAGS) $(KERN_OBJS) $(FS_OBJS) $(GCC_LIB) -o $@
+	$(LD) $(LDFLAGS) $(KERN_LDFLAGS) $(KERN_OBJS) $(ULIB) $(UPROG) $(FS_OBJS) $(GCC_LIB) -o $@
 
 	$(OBJDUMP) -S $@ > $@.asm
 	$(NM) -n $@ > $@.sym
