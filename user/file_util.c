@@ -29,6 +29,7 @@ int ls(int argc, char** argv) {
         int fd;
         char buf[100];
         path = argv[1];
+        // TODO
         //fd = open(path, O_RDONLY | O_DIRECTORY, 0);
         readdir(0, path, NULL, NULL);
         /*if ( fd >= 0 ) {
