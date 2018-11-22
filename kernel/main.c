@@ -23,10 +23,10 @@ void kernel_main(void)
 	extern char stext[];
 	extern char etext[], end[], data_start[],rdata_end[];
 	extern void task_job();
-
 	init_video();
   	mem_init();
 	mp_init();
+    while(1);
 	lapic_init();
   	task_init();
 	trap_init();
