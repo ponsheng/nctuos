@@ -22,7 +22,7 @@ IMG=Kernel.img
 
 CPUS ?= 1
 
-all: clean boot/boot kernel/system
+all: boot/boot kernel/system
 	dd if=/dev/zero of=$(OBJDIR)/$(IMG) count=10000 2>/dev/null
 	dd if=$(OBJDIR)/boot/boot of=$(OBJDIR)/$(IMG) conv=notrunc 2>/dev/null
 	dd if=$(OBJDIR)/kernel/system of=$(OBJDIR)/$(IMG) seek=1 conv=notrunc 2>/dev/null
