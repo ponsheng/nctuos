@@ -33,7 +33,7 @@ PROVIDE(etext = .);	/* Define the 'etext' symbol to this value */
 
 . = ALIGN(0x1000);
 PROVIDE(URODATA_start = .);
-.rodata : {
+.rodata :AT(LOADADDR(.text) + . - ADDR(.text)){
   lib/string.o (.rodata)
   lib/printf.o (.rodata)
   lib/printfmt.o (.rodata)
@@ -48,7 +48,7 @@ PROVIDE(URODATA_start = .);
 PROVIDE(rdata_end = .);
 
 /* Include debugging information in kernel memory */
-.stab : {
+.stab : AT(LOADADDR(.text) + . - ADDR(.text)){
   PROVIDE(__STAB_BEGIN__ = .);
   *(.stab);
   PROVIDE(__STAB_END__ = .);
@@ -56,7 +56,7 @@ PROVIDE(rdata_end = .);
   for this section */
 }
 
-.stabstr : {
+.stabstr : AT(LOADADDR(.text) + . - ADDR(.text)){
   PROVIDE(__STABSTR_BEGIN__ = .);
   *(.stabstr);
   PROVIDE(__STABSTR_END__ = .);
@@ -69,7 +69,7 @@ PROVIDE(rdata_end = .);
 
 /* The data segment */
 PROVIDE(data_start = .);
-.data : {
+.data : AT(LOADADDR(.text) + . - ADDR(.text)){
 PROVIDE(UDATA_start = .);
   lib/string.o (.data)
   lib/printf.o (.data)
@@ -80,10 +80,10 @@ PROVIDE(UDATA_start = .);
   user/shell.o (.data)
   user/main.o (.data)
 PROVIDE(UDATA_end = .);
-  *(.data)
+  *(.data*)
 }
 PROVIDE(bss_start = .);
-.bss : {
+.bss : AT(LOADADDR(.text) + . - ADDR(.text)){
 PROVIDE(UBSS_start = .);
   lib/string.o (.bss)
   lib/printf.o (.bss)
